@@ -12,3 +12,11 @@ TODO flow for the installer (a cross-platform executable jar):
     * (The folder is located in %AppData% for Windows, /Users/<user>/Library/Application Support/minecraft on Mac, and ~/.minecraft on Linux)
 * Prompt to open minecraft launcher and select '1.12 forge' profile, then launch
 * Prompt to connect to mc.herobraine.stream with 'record' enabled
+
+## Build the installer on Ubuntu
+
+```
+sudo apt install default-jdk
+./gradlew build
+java -jar build/libs/installer.jar
+```
