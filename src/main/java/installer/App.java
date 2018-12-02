@@ -3,29 +3,34 @@
  */
 package installer;
 
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import java.awt.Desktop;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.LinkedList;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JPanel;
+import javax.swing.JLabel;
 import javax.swing.JTextArea;
+
 
 public class App extends JFrame implements ActionListener {
     private JTextArea label = new JTextArea();
-    private JPanel imagePanel = new JPanel();
+    private JLabel imageLabel = new JLabel();
     private JButton nextButton = new JButton("Continue");
 
     private LinkedList<String> commands = new LinkedList<String>();
@@ -41,7 +46,7 @@ public class App extends JFrame implements ActionListener {
         label.setWrapStyleWord(true); 
         getContentPane().add(label);
         // Add an image box
-        getContentPane().add(imagePanel);
+        getContentPane().add(imageLabel);
         // Add a Next button (that clears the label?)
         nextButton.addActionListener(this);
         getContentPane().add(nextButton);
@@ -69,11 +74,18 @@ public class App extends JFrame implements ActionListener {
     private void processNextCommand() {
         if (commands.size() > 0) {
             String line = commands.removeFirst();
+            System.out.println(line);
             String[] parts = line.split(":");
             String command = parts[0].trim();
             String content = "";
             if (parts.length > 1) {
                 content = parts[1].trim();
+            }
+            // Hackish fix for URLs splitting multiple times
+            if (parts.length > 2) {
+                for (int idx = 2; idx< parts.length; ++idx) {
+                    content += ":" + parts[idx];
+                }
             }
 
             try {
@@ -90,44 +102,56 @@ public class App extends JFrame implements ActionListener {
 
     public void processCommand(String command, String content) throws IOException {
         switch (command) {
+            case "":
+                processNextCommand();
+                break;
             case "message":
                 showMessage(content);
                 break;
             case "image":
                 showImage(content);
+                processNextCommand();
                 break;
             case "noimage":
                 clearImage();
                 break;
             case "browser": 
                 openURL(content);
+                processNextCommand();
+                break;
+            case "download":
+                downloadFile(content);
+                processNextCommand();
+                break;
+            case "run":
+                runJar(content);
+                processNextCommand();
                 break;
             default:
                 showMessage("Something went wrong with the installer. Please report this error by visiting bugs.herobraine.stream.");
                 break;
+
         }
     }
 
     private void showImage(String path) throws IOException {
-        BufferedImage bi = ImageIO.read(getClass().getResourceAsStream("/resources/" + path));
+        BufferedImage image = ImageIO.read(getClass().getResourceAsStream("/resources/" + path));
 
-        int w = bi.getWidth();
-        int h = bi.getHeight();
-        imagePanel.setBounds(0, 0, w, h);
+        if (image != null) {
+            ImageIcon icon = new ImageIcon(image);
 
-        Graphics g = imagePanel.getGraphics();
-        Graphics2D g2 = (Graphics2D)g;
-        RenderingHints rh = new RenderingHints(
-            RenderingHints.KEY_INTERPOLATION,
-            RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g2.setRenderingHints(rh);
+            imageLabel.setText("");
+            imageLabel.setIcon(icon);
+        } else {
+            imageLabel.setText("Failed to load tutorial image " + path);
+        }
 
-        g.drawImage(bi, 0, 0, w, h, null);
         pack();
     }
 
     private void clearImage() {
-        imagePanel.getGraphics().clearRect(0, 0, imagePanel.getWidth(), imagePanel.getHeight());
+        imageLabel.setIcon(null);
+        pack();
     }
 
     private void showMessage(String message) {
@@ -137,8 +161,55 @@ public class App extends JFrame implements ActionListener {
     }
 
     private void openURL(String url) {
-        // TODO open the URL in the browser and wait for "continue" to be clicked.
+        // Open the URL in the browser and wait for "continue" to be clicked.
+        try {
+            Desktop.getDesktop().browse(new URL(url).toURI());
+        } catch (Exception e) {
+            showMessage("The installer failed to open your web browser.");
+        }       
     }
+
+    private void downloadFile(String url) {
+        String filename = url.substring(url.lastIndexOf("/") + 1);
+        try {
+            BufferedInputStream in = new BufferedInputStream(new URL(url).openStream());
+
+            String home = System.getProperty("user.home");
+            File file = new File(home+ File.separator + "Downloads" + File.separator + filename); 
+            file.createNewFile();
+            FileOutputStream out = new FileOutputStream(file);
+
+            int next = 0;
+            while ((next = in.read()) != -1) {
+                out.write(next);
+            }
+
+            in.close();
+            out.close();
+        } catch (MalformedURLException e) {
+            showMessage("The installer tried to open an invalid URL." + url);
+        } catch (IOException e) {
+            showMessage("The installer encountered an IO error while downloading " + url);
+        }
+
+    }
+    
+    private void runJar(String path) {
+        String fullPath =  System.getProperty("user.home") + File.separator + "Downloads" + File.separator + path;
+
+        Process proc;
+        try {
+            proc = Runtime.getRuntime().exec("java -jar" + fullPath);
+            proc.waitFor();
+        } catch (IOException e) {
+            showMessage("The installer failed to install Minecraft Forge");
+        } catch (InterruptedException e) {
+            showMessage("The installer was interrupted trying to install Minecraft Forge");
+        }
+        processNextCommand();
+    }
+
+    // TODO disable the button while blocking operations happen
 
     @Override
     public void actionPerformed(ActionEvent e) {

@@ -1,2 +1,24 @@
 message: Thanks for your interest in the Herobraine project! This installer will guide you through the steps to get started.
+
+image: buydownload.png
 browser: http://minecraft.net/
+message: The first requirement is that you have purchased and installed Minecraft Java Edition. If you have not done so, take this chance to visit the official Minecraft website and install the game before clicking "Continue."
+
+browser: http://herobraine.stream/consent_form/
+message: Now is a good time to fill out the Herobraine consent form. It must be filled out with the email address and username of your Minecraft account in order to log onto our servers.
+
+image: mainmenu.png
+message: Make sure Minecraft is fully installed by opening the launcher and making sure you can see the Main Menu. It may look like this, or slightly different for other versions of Minecraft.
+
+message: We will now install the mods required by Herobraine's servers.
+
+download: https://files.minecraftforge.net/maven/net/minecraftforge/forge/1.12.2-14.23.5.2795/forge-1.12.2-14.23.5.2795-installer.jar
+run: forge-1.12.2-14.23.5.2795-installer.jar
+download: https://www.dl.dropboxusercontent.com/s/hzusocfdkzoqpuk/herobraine.jar
+modfolder: herobraine.jar 
+
+image: properprofile.png
+message: You're now all set to launch Minecraft and join the Herobraine server! When you launch the game, make sure to select the Forge 1.12 profile.
+
+image: serverip.png
+message: Finally, you can add the official Herobraine server to your server list and connect! Have fun out there!
