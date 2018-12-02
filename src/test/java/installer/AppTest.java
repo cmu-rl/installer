@@ -10,4 +10,5 @@ public class AppTest {
     @Test public void testApp() {
         App classUnderTest = new App();
         // TODO test urls used are valid
+    }
 }

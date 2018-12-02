@@ -3,44 +3,146 @@
  */
 package installer;
 
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.LinkedList;
 
-public class App {
-    public static void main(String[] args) throws IOException {
-        InputStream in = App.class.getResourceAsStream("/resources/process.txt");
+import javax.imageio.ImageIO;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+
+public class App extends JFrame implements ActionListener {
+    private JTextArea label = new JTextArea();
+    private JPanel imagePanel = new JPanel();
+    private JButton nextButton = new JButton("Continue");
+
+    private LinkedList<String> commands = new LinkedList<String>();
+
+    public App() {
+        // Specify exit behavior
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // Use boxLayout
+        getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.PAGE_AXIS));
+        // Add a label
+        label.setEditable(false);
+        label.setLineWrap(true);
+        label.setWrapStyleWord(true); 
+        getContentPane().add(label);
+        // Add an image box
+        getContentPane().add(imagePanel);
+        // Add a Next button (that clears the label?)
+        nextButton.addActionListener(this);
+        getContentPane().add(nextButton);
+    }
+
+    public void startInstallation() throws IOException {
+        setVisible(true);
+
+        InputStream in = getClass().getResourceAsStream("/resources/process.txt");
         BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
         String line = "";
         while ((line = reader.readLine()) != null) { 
+            commands.addLast(line);
+        }
+
+        in.close();
+        processNextCommand();
+    }
+
+    public static void main(String[] args) throws IOException {
+        new App().startInstallation();
+    }
+
+    private void processNextCommand() {
+        if (commands.size() > 0) {
+            String line = commands.removeFirst();
             String[] parts = line.split(":");
             String command = parts[0].trim();
-            String content = parts[1].trim();
-            processCommand(command, content);
+            String content = "";
+            if (parts.length > 1) {
+                content = parts[1].trim();
+            }
+
+            try {
+                processCommand(command, content);
+            }
+            catch (IOException e) {
+                showMessage("Something went wrong with the installer.");
+            }
+        }
+        else {
+            dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
         }
     }
 
-    public static void processCommand(String command, String content) {
+    public void processCommand(String command, String content) throws IOException {
         switch (command) {
             case "message":
-                makeMessage(content);
+                showMessage(content);
+                break;
+            case "image":
+                showImage(content);
+                break;
+            case "noimage":
+                clearImage();
                 break;
             case "browser": 
                 openURL(content);
                 break;
             default:
-                makeMessage("Something went wrong with the installer. Please report this error by visiting bugs.herobraine.stream.");
+                showMessage("Something went wrong with the installer. Please report this error by visiting bugs.herobraine.stream.");
                 break;
         }
     }
 
-    private static void makeMessage(String message) {
-        // TODO display the message to the JFrame and wait for "continue" to be clicked.
+    private void showImage(String path) throws IOException {
+        BufferedImage bi = ImageIO.read(getClass().getResourceAsStream("/resources/" + path));
+
+        int w = bi.getWidth();
+        int h = bi.getHeight();
+        imagePanel.setBounds(0, 0, w, h);
+
+        Graphics g = imagePanel.getGraphics();
+        Graphics2D g2 = (Graphics2D)g;
+        RenderingHints rh = new RenderingHints(
+            RenderingHints.KEY_INTERPOLATION,
+            RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2.setRenderingHints(rh);
+
+        g.drawImage(bi, 0, 0, w, h, null);
+        pack();
     }
 
-    private static void openURL(String message) {
+    private void clearImage() {
+        imagePanel.getGraphics().clearRect(0, 0, imagePanel.getWidth(), imagePanel.getHeight());
+    }
+
+    private void showMessage(String message) {
+        // display the message to the JFrame and wait for "continue" to be clicked.
+        label.setText(message);
+        revalidate();
+    }
+
+    private void openURL(String url) {
         // TODO open the URL in the browser and wait for "continue" to be clicked.
     }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        // When the continue button is clicked, continue installation steps
+        processNextCommand();
+	}
 }
