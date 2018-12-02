@@ -9,13 +9,38 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class App {
-    public String getGreeting() {
-        return "Hello world.";
-    }
-
     public static void main(String[] args) throws IOException {
         InputStream in = App.class.getResourceAsStream("/resources/process.txt");
         BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-        System.out.println(reader.readLine());
+
+        String line = "";
+        while ((line = reader.readLine()) != null) { 
+            String[] parts = line.split(":");
+            String command = parts[0].trim();
+            String content = parts[1].trim();
+            processCommand(command, content);
+        }
+    }
+
+    public static void processCommand(String command, String content) {
+        switch (command) {
+            case "message":
+                makeMessage(content);
+                break;
+            case "browser": 
+                openURL(content);
+                break;
+            default:
+                makeMessage("Something went wrong with the installer. Please report this error by visiting bugs.herobraine.stream.");
+                break;
+        }
+    }
+
+    private static void makeMessage(String message) {
+        // TODO display the message to the JFrame and wait for "continue" to be clicked.
+    }
+
+    private static void openURL(String message) {
+        // TODO open the URL in the browser and wait for "continue" to be clicked.
     }
 }
