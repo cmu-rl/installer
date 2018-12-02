@@ -3,12 +3,19 @@
  */
 package installer;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
 public class App {
     public String getGreeting() {
         return "Hello world.";
     }
 
-    public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+    public static void main(String[] args) throws IOException {
+        InputStream in = App.class.getResourceAsStream("/resources/process.txt");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+        System.out.println(reader.readLine());
     }
 }

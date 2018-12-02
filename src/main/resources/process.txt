@@ -1,0 +1,2 @@
+message: Thanks for your interest in the Herobraine project! This installer will guide you through the steps to get started.
+browser: http://minecraft.net/
