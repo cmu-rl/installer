@@ -11,6 +11,8 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -127,6 +129,10 @@ public class App extends JFrame implements ActionListener {
                 runJar(content);
                 processNextCommand();
                 break;
+            case "modfolder":
+                addToModFolder(content);
+                processNextCommand();
+                break;
             default:
                 showMessage("Something went wrong with the installer. Please report this error by visiting bugs.herobraine.stream.");
                 break;
@@ -135,9 +141,10 @@ public class App extends JFrame implements ActionListener {
     }
 
     private void showImage(String path) throws IOException {
-        BufferedImage image = ImageIO.read(getClass().getResourceAsStream("/resources/" + path));
+        InputStream stream = getClass().getResourceAsStream("/resources/" + path);
 
-        if (image != null) {
+        if (stream != null) {
+            BufferedImage image = ImageIO.read(stream);
             ImageIcon icon = new ImageIcon(image);
 
             imageLabel.setText("");
@@ -186,6 +193,7 @@ public class App extends JFrame implements ActionListener {
 
             in.close();
             out.close();
+            System.out.println("Download complete");
         } catch (MalformedURLException e) {
             showMessage("The installer tried to open an invalid URL." + url);
         } catch (IOException e) {
@@ -199,8 +207,22 @@ public class App extends JFrame implements ActionListener {
 
         Process proc;
         try {
-            proc = Runtime.getRuntime().exec("java -jar" + fullPath);
-            proc.waitFor();
+            proc = Runtime.getRuntime().exec("java -jar " + fullPath);
+            BufferedReader in = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            BufferedReader err = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+            int code = proc.waitFor();
+            System.out.println("Process completed with code " + code);
+            if (code != 0) {
+                System.out.println("Output: ");
+                String line;
+                while ((line = in.readLine()) != null) {
+                    System.out.println(line);
+                } 
+                System.out.println("Error: ");
+                while ((line = err.readLine()) != null) {
+                    System.out.println(line);
+                } 
+            }
         } catch (IOException e) {
             showMessage("The installer failed to install Minecraft Forge");
         } catch (InterruptedException e) {
@@ -208,6 +230,57 @@ public class App extends JFrame implements ActionListener {
         }
         processNextCommand();
     }
+
+    private void addToModFolder(String path) {
+        String fullPath =  System.getProperty("user.home") + File.separator + "Downloads" + File.separator + path;
+        try {
+            BufferedInputStream in = new BufferedInputStream(new FileInputStream(new File(fullPath)));
+            String pathToPut = "";
+            String os = System.getProperty("os.name").toLowerCase();
+            if (os.contains("win")){
+                //Operating system is based on Windows
+                pathToPut = System.getenv("AppData") + File.separator + ".minecraft" + File.separator;
+            }
+            else if (os.contains("osx")){
+                //Operating system is Apple OSX based
+                pathToPut = System.getProperty("user.home") + "/Library/Application Support/.minecraft/";
+            }      
+            else if (os.contains("nix") || os.contains("aix") || os.contains("nux")){
+                //Operating system is based on Linux/Unix/*AIX
+                pathToPut = System.getProperty("user.home") + "/.minecraft/";
+            }
+
+
+            pathToPut += "mods";
+            File modDir = new File(pathToPut);
+            if (!modDir.exists()) {
+                modDir.mkdir();
+            }
+            
+            pathToPut += File.separator + path;
+            File file = new File(pathToPut); 
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                showMessage("Failed to create file at " + pathToPut);
+            }
+            FileOutputStream out = new FileOutputStream(file);
+
+            int next = 0;
+            while ((next = in.read()) != -1) {
+                out.write(next);
+            }
+
+            in.close();
+            out.close();
+            System.out.println(path + " installation complete");
+    
+        } catch (FileNotFoundException e) {
+            showMessage("Mod file doesn't exist: " + path);
+        } catch (IOException e) {
+            showMessage("Couldn't read from mod file: " + path);
+        }
+   }
 
     // TODO disable the button while blocking operations happen
 
