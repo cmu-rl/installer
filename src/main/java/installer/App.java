@@ -116,6 +116,7 @@ public class App extends JFrame implements ActionListener {
                 break;
             case "noimage":
                 clearImage();
+                processNextCommand();
                 break;
             case "browser": 
                 openURL(content);
@@ -150,6 +151,7 @@ public class App extends JFrame implements ActionListener {
             imageLabel.setText("");
             imageLabel.setIcon(icon);
         } else {
+            imageLabel.setIcon(null);
             imageLabel.setText("Failed to load tutorial image " + path);
         }
 
